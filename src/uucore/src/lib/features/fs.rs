@@ -20,7 +20,17 @@ use std::io::Result as IOResult;
 use std::io::{Error, ErrorKind};
 #[cfg(any(unix, target_os = "redox"))]
 use std::os::unix::fs::MetadataExt;
+#[cfg(unix)]
+use std::os::unix::io::AsRawFd;
 use std::path::{Component, Path, PathBuf};
+
+#[cfg(windows)]
+extern crate winapi;
+
+#[cfg(windows)]
+use std::os::windows::fs::OpenOptionsExt;
+#[cfg(windows)]
+use winapi::um::winbase;
 
 #[cfg(unix)]
 macro_rules! has {
@@ -265,4 +275,26 @@ pub fn display_permissions_unix(mode: u32) -> String {
     });
 
     result
+}
+
+#[cfg(target_os = "linux")]
+pub fn open_seq_read<P: AsRef<Path>>(path: P) -> IOResult<fs::File> {
+    let file = fs::File::open(path)?;
+    unsafe {
+        libc::posix_fadvise(file.as_raw_fd(), 0, 0, libc::POSIX_FADV_SEQUENTIAL);
+    }
+    Ok(file)
+}
+
+#[cfg(windows)]
+pub fn open_seq_read<P: AsRef<Path>>(path: P) -> IOResult<fs::File> {
+    fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(winbase::FILE_FLAG_SEQUENTIAL_SCAN)
+        .open(path.as_ref())
+}
+
+#[cfg(not(any(target_os = "linux", windows)))]
+pub fn open_seq_read<P: AsRef<Path>>(path: P) -> IOResult<fs::File> {
+    fs::File::open(path)
 }

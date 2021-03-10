@@ -19,7 +19,7 @@ use std::fs::File;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter, Lines, Read, Write};
 use std::mem::replace;
 use std::path::Path;
-use uucore::fs::is_stdin_interactive; // for Iterator::dedup()
+use uucore::fs::{is_stdin_interactive, open_seq_read}; // for Iterator::dedup()
 
 static NAME: &str = "sort";
 static ABOUT: &str = "Display sorted concatenation of all FILE(s).";
@@ -598,7 +598,7 @@ fn open(path: &str) -> Option<(Box<dyn Read>, bool)> {
         return Some((Box::new(stdin) as Box<dyn Read>, is_stdin_interactive()));
     }
 
-    match File::open(Path::new(path)) {
+    match open_seq_read(path) {
         Ok(f) => Some((Box::new(f) as Box<dyn Read>, false)),
         Err(e) => {
             show_error!("sort: {0}: {1}", path, e.to_string());

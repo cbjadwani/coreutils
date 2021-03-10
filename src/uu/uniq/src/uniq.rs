@@ -11,8 +11,9 @@ extern crate uucore;
 use clap::{App, Arg, ArgMatches};
 use std::fs::File;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter, Read, Write};
-use std::path::Path;
 use std::str::FromStr;
+
+use uucore::fs::open_seq_read;
 
 static ABOUT: &str = "Report or omit repeated lines.";
 static VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -349,9 +350,8 @@ fn open_input_file(in_file_name: String) -> BufReader<Box<dyn Read + 'static>> {
     let in_file = if in_file_name == "-" {
         Box::new(stdin()) as Box<dyn Read>
     } else {
-        let path = Path::new(&in_file_name[..]);
-        let in_file = File::open(&path);
-        let r = crash_if_err!(1, in_file);
+        let file = open_seq_read(in_file_name);
+        let r = crash_if_err!(1, file);
         Box::new(r) as Box<dyn Read>
     };
     BufReader::new(in_file)
@@ -361,8 +361,7 @@ fn open_output_file(out_file_name: String) -> BufWriter<Box<dyn Write + 'static>
     let out_file = if out_file_name == "-" {
         Box::new(stdout()) as Box<dyn Write>
     } else {
-        let path = Path::new(&out_file_name[..]);
-        let in_file = File::create(&path);
+        let in_file = File::create(out_file_name);
         let w = crash_if_err!(1, in_file);
         Box::new(w) as Box<dyn Write>
     };
